@@ -164,7 +164,7 @@ export function useGame() {
       if (!snap || snap.status !== "playing") return;
       if (viewIndex !== null) return;
       const isPlayerTurn =
-        snap.mode === "pvp" ? true : snap.side === snap.playerSide;
+        snap.mode === "pvp" || snap.mode === "study" ? true : snap.side === snap.playerSide;
       if (!isPlayerTurn) return;
       setSelected(null);
       setLegalTargets([]);
@@ -188,7 +188,7 @@ export function useGame() {
   const select = useCallback(
     async (sq: number) => {
       if (!snap || snap.status !== "playing" || viewIndex !== null) return;
-      if (snap.mode !== "pvp" && snap.side !== snap.playerSide) return;
+      if (snap.mode !== "pvp" && snap.mode !== "study" && snap.side !== snap.playerSide) return;
       if (selected === sq) {
         setSelected(null);
         setLegalTargets([]);
@@ -257,6 +257,23 @@ export function useGame() {
         setPuzzleBanner(null);
         setClock(null);
         applySnap(s);
+      } catch (e) {
+        showToast(String(e), "error");
+      }
+    },
+    [applySnap, showToast]
+  );
+
+  /** 研究模式：摆任意局面，双方由玩家自由走子 */
+  const startStudy = useCallback(
+    async (fen: string) => {
+      try {
+        const s = await api.studyStart(fen);
+        setGameOverSeen(null);
+        setPuzzleBanner(null);
+        setClock(null);
+        applySnap(s);
+        showToast("研究模式：双方棋子都由你走，可悔棋可提示", "info");
       } catch (e) {
         showToast(String(e), "error");
       }
@@ -347,7 +364,13 @@ export function useGame() {
     }
   }, [clock, snap, applySnap]);
 
-  const flipBoard = snap ? snap.mode === "pvp" ? false : snap.playerSide === "black" && settings.flipWithSide ? true : false : false;
+  const flipBoard = snap
+    ? snap.mode === "pvp" || snap.mode === "study"
+      ? false
+      : snap.playerSide === "black" && settings.flipWithSide
+        ? true
+        : false
+    : false;
 
   return {
     snap,
@@ -372,6 +395,7 @@ export function useGame() {
     newGame,
     newPvpGame,
     startPuzzle,
+    startStudy,
     undoMove,
     requestHint,
     resignGame,

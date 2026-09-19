@@ -9,11 +9,12 @@ import PuzzlePanel from "./components/PuzzlePanel";
 import ReviewPanel from "./components/ReviewPanel";
 import SettingsDialog from "./components/SettingsDialog";
 import StatsPanel from "./components/StatsPanel";
+import TutorialPanel from "./components/TutorialPanel";
 import { useGame } from "./hooks/useGame";
 import { BADGE_LABEL, parseFen, type ReviewItem } from "./lib/types";
 import { defaultSettings, saveStats, type Stats } from "./lib/storage";
 
-type Tab = "moves" | "puzzle" | "review" | "stats";
+type Tab = "moves" | "tutorial" | "puzzle" | "review" | "stats";
 
 export default function App() {
   const g = useGame();
@@ -56,9 +57,12 @@ export default function App() {
   }
 
   const inPuzzle = snap.mode === "puzzle" || snap.mode === "practice";
+  const inStudy = snap.mode === "study";
   const interactive = snap.status === "playing" && !viewing && !g.thinking;
   const lastBadge = snap.records.length > 0 ? snap.records[snap.records.length - 1].badge : null;
-  const lastIsMine = snap.records.length > 0 && (snap.mode === "pvp" || (snap.records[snap.records.length - 1].isRed ? "red" : "black") === snap.playerSide);
+  const lastIsMine =
+    snap.records.length > 0 &&
+    (snap.mode === "pvp" || snap.mode === "study" || (snap.records[snap.records.length - 1].isRed ? "red" : "black") === snap.playerSide);
 
   const statusText = () => {
     if (snap.status === "playing") return null;
@@ -94,7 +98,7 @@ export default function App() {
         <section className="board-area">
           {!inPuzzle && <EvalBar evalCp={viewing ? 0 : snap.evalCp} />}
           <div className="board-stack">
-            <PlayerCard snap={snap} side={snap.mode === "pvp" || snap.playerSide === "red" ? "black" : "red"} thinking={g.thinking} clockMs={g.clock ? g.clock.black : null} />
+            <PlayerCard snap={snap} side={snap.mode === "pvp" || snap.mode === "study" || snap.playerSide === "red" ? "black" : "red"} thinking={g.thinking} clockMs={g.clock ? g.clock.black : null} />
             <Board
               fen={viewFen}
               lastMove={viewLast}
@@ -117,10 +121,15 @@ export default function App() {
                 }
               }}
             />
-            <PlayerCard snap={snap} side={snap.mode === "pvp" ? "red" : (snap.playerSide as "red" | "black")} thinking={g.thinking} clockMs={g.clock ? g.clock.red : null} />
+            <PlayerCard snap={snap} side={snap.mode === "pvp" || snap.mode === "study" ? "red" : (snap.playerSide as "red" | "black")} thinking={g.thinking} clockMs={g.clock ? g.clock.red : null} />
           </div>
+          {inStudy && (
+            <div className="study-tag" onClick={() => setTab("tutorial")}>
+              研究模式 · 点击返回教程
+            </div>
+          )}
           {/* 落子评价浮标 */}
-          {lastBadge && !inPuzzle && (
+          {lastBadge && !inPuzzle && !inStudy && (
             <div className={`fb-chip fb-${lastBadge} ${lastIsMine ? "" : "opp"}`} key={snap.records.length}>
               {lastIsMine ? "你的落子" : "对方落子"} · {BADGE_LABEL[lastBadge] ?? lastBadge}
             </div>
@@ -141,6 +150,7 @@ export default function App() {
           <nav className="tabs">
             {[
               { k: "moves", t: "棋谱" },
+              { k: "tutorial", t: "教程" },
               { k: "puzzle", t: "解谜" },
               { k: "review", t: "复盘" },
               { k: "stats", t: "棋力" },
@@ -172,6 +182,14 @@ export default function App() {
                   </div>
                 )}
               </>
+            )}
+            {tab === "tutorial" && (
+              <TutorialPanel
+                studyFen={inStudy ? snap.startFen : null}
+                onStartStudy={(fen) => {
+                  void g.startStudy(fen);
+                }}
+              />
             )}
             {tab === "puzzle" && (
               <PuzzlePanel

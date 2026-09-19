@@ -1,7 +1,7 @@
 /** localStorage 持久化：设置、棋力统计、解谜进度 */
 
 export interface Settings {
-  theme: "dark" | "wood" | "jade";
+  theme: "dark" | "wood" | "jade" | "ink" | "dusk" | "ocean" | "amber";
   sound: boolean;
   showLegal: boolean;
   instantFeedback: boolean;

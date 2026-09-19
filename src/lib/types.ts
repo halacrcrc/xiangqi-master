@@ -37,7 +37,7 @@ export interface Snapshot {
   reason: string;
   evalCp: number;
   opening?: string | null;
-  mode: "ai" | "pvp" | "puzzle" | "practice";
+  mode: "ai" | "pvp" | "puzzle" | "practice" | "study";
   difficulty: number;
   playerSide: Side | "both";
   canUndo: boolean;

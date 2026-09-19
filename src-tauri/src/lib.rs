@@ -18,6 +18,7 @@ enum Mode {
     Pvp,
     Puzzle,
     Practice,
+    Study,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -171,7 +172,7 @@ impl Session {
     fn is_player_turn(&self) -> bool {
         match self.mode {
             Mode::Ai | Mode::Puzzle | Mode::Practice => self.board.side == self.player_side,
-            Mode::Pvp => true,
+            Mode::Pvp | Mode::Study => true,
         }
     }
 }
@@ -197,6 +198,7 @@ fn snapshot(s: &Session) -> Snapshot {
         Mode::Pvp => "pvp",
         Mode::Puzzle => "puzzle",
         Mode::Practice => "practice",
+        Mode::Study => "study",
     };
     let opening = if s.start_fen == Board::initial().to_fen() {
         openings::identify(&s.move_seq()).map(|n| n.to_string())
@@ -241,7 +243,7 @@ fn snapshot(s: &Session) -> Snapshot {
         mode: mode.to_string(),
         difficulty: s.difficulty,
         player_side: match s.mode {
-            Mode::Pvp => "both".to_string(),
+            Mode::Pvp | Mode::Study => "both".to_string(),
             _ => side_str(s.player_side).to_string(),
         },
         can_undo: !s.records.is_empty() && s.status == GameStatus::Playing,
@@ -281,9 +283,26 @@ fn game_new(state: State<'_, AppState>, difficulty: usize, player_side: String, 
     snapshot(&s)
 }
 
+/// 研究模式：从任意 FEN 开始，双方棋子均由玩家自由移动（用于教程演局）
 #[tauri::command]
-fn game_new_pvp(state: State<'_, AppState>, instant_feedback: bool) -> Snapshot {
+fn game_study_start(state: State<'_, AppState>, fen: String) -> Result<Snapshot, String> {
     let mut s = state.0.lock().unwrap();
+    let board = Board::from_fen(&fen).map_err(|e| format!("局面错误: {e}"))?;
+    s.start_fen = board.to_fen();
+    s.board = board;
+    s.mode = Mode::Study;
+    s.player_side = RED;
+    s.records.clear();
+    s.status = GameStatus::Playing;
+    s.reason.clear();
+    s.puzzle = None;
+    s.eval_cp = quick_eval_red(&s.board, 3);
+    s.bump();
+    Ok(snapshot(&s))
+}
+
+#[tauri::command]
+fn game_new_pvp(state: State<'_, AppState>, instant_feedback: bool) -> Snapshot {    let mut s = state.0.lock().unwrap();
     let board = Board::initial();
     s.start_fen = board.to_fen();
     s.board = board;
@@ -334,7 +353,7 @@ async fn player_move(state: State<'_, AppState>, from: u8, to: u8) -> Result<Sna
             return Err("该走法不合法".into());
         }
         let board_before = s.board.clone();
-        let want_judge = s.instant_feedback && (s.mode == Mode::Pvp || s.board.side == s.player_side);
+        let want_judge = s.instant_feedback && (s.mode == Mode::Pvp || (s.mode == Mode::Ai && s.board.side == s.player_side));
         s.apply_move(mv);
         // 更新评估条
         if s.status == GameStatus::Playing {
@@ -454,7 +473,7 @@ fn undo(state: State<'_, AppState>) -> Snapshot {
         s.reason.clear();
     }
     match s.mode {
-        Mode::Pvp => {
+        Mode::Pvp | Mode::Study => {
             let n = s.board.undo_len().saturating_sub(1);
             s.board.undo_to(n);
             s.records.pop();
@@ -814,6 +833,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             game_new,
             game_new_pvp,
+            game_study_start,
             legal_moves,
             player_move,
             ai_move,

@@ -105,7 +105,7 @@ pub static PUZZLES: &[Puzzle] = &[
         name: "单车胜单象",
         kind: PuzzleKind::Practice,
         difficulty: 2,
-        fen: "4k4/9/2b6/9/9/3R5/9/9/9/3KA4 r",
+        fen: "4k4/9/2b6/9/9/3R5/9/9/4A4/3K5 r",
         theme: "残局定式",
         hint: "把将逼到与象同侧，车抢象眼。",
         solution: &[],
@@ -115,7 +115,7 @@ pub static PUZZLES: &[Puzzle] = &[
         name: "单车难胜士象全",
         kind: PuzzleKind::Practice,
         difficulty: 3,
-        fen: "3aka3/9/2b3b2/9/9/2R6/9/9/9/3KA4 b",
+        fen: "3aka3/9/2b3b2/9/9/2R6/9/9/4A4/3K5 b",
         theme: "残局防守",
         hint: "士象归位、将坐宫心，守住中路即是和棋。你执黑守和。",
         solution: &[],
@@ -159,7 +159,7 @@ pub fn puzzle_by_id(id: u32) -> Option<&'static Puzzle> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::board::{Move, RED};
+    use crate::engine::board::{Move, BLACK, RED};
     use crate::engine::search::{Searcher, MATE};
 
     /// 所有杀局谜题必须是强制杀，且不超回合数
@@ -192,6 +192,28 @@ mod tests {
                     first
                 );
             }
+        }
+    }
+
+    /// 教程图解中的额外杀法（一步杀，逐个引擎验证）
+    #[test]
+    fn verify_tutorial_mates() {
+        let cases: &[(&str, &str, &str)] = &[
+            ("二鬼拍门", "3k1a3/2P1P4/9/9/9/9/9/9/7R1/4K4 r", "h1d1"),
+        ];
+        for (name, fen, key) in cases {
+            let b = Board::from_fen(fen).unwrap_or_else(|e| panic!("{name} FEN 错误: {e}"));
+            assert_eq!(b.side, RED, "{name} 应红先");
+            assert!(!b.in_check(BLACK), "{name}: 红走棋时黑方不应已被将军");
+            assert!(!b.in_check(RED), "{name}: 红方不应被将军");
+            assert!(!b.kings_facing(), "{name}: 双王照面");
+            let mut s = Searcher::new();
+            assert!(s.forced_mate(&b, 1), "{name}: 应为一步杀");
+            let mv = Move::from_iccs(key).unwrap();
+            assert!(
+                b.legal_moves().iter().any(|m| m.from == mv.from && m.to == mv.to),
+                "{name}: 主变 {key} 非法"
+            );
         }
     }
 

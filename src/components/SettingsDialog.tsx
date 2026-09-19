@@ -11,6 +11,10 @@ const THEMES = [
   { v: "dark", label: "墨夜" },
   { v: "wood", label: "原木" },
   { v: "jade", label: "青玉" },
+  { v: "ink", label: "水墨" },
+  { v: "dusk", label: "暮霭" },
+  { v: "ocean", label: "海蓝" },
+  { v: "amber", label: "琥珀" },
 ] as const;
 
 export default function SettingsDialog({ settings, onChange, onClose, onResetStats }: Props) {
@@ -23,7 +27,7 @@ export default function SettingsDialog({ settings, onChange, onClose, onResetSta
 
         <div className="field">
           <label>主题</label>
-          <div className="seg">
+          <div className="seg wrap">
             {THEMES.map((t) => (
               <button key={t.v} className={`seg-btn ${settings.theme === t.v ? "on" : ""}`} onClick={() => onChange({ ...settings, theme: t.v })}>
                 {t.label}

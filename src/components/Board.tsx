@@ -224,6 +224,9 @@ export default function Board(props: BoardProps) {
         {bestPts && <Arrow f={bestPts.f} t={bestPts.t} cls="bd-arrow-best" />}
       </svg>
 
+      {/* 木纹质感层 */}
+      <div className="board-grain" />
+
       {/* 棋子层 */}
       <div className="pieces-layer">
         {pieces.map((p) => {

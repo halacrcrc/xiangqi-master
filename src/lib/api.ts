@@ -29,6 +29,7 @@ export const api = {
   gameNew: (difficulty: number, playerSide: "red" | "black", instantFeedback: boolean) =>
     invoke<Snapshot>("game_new", { difficulty, playerSide, instantFeedback }),
   gameNewPvp: (instantFeedback: boolean) => invoke<Snapshot>("game_new_pvp", { instantFeedback }),
+  studyStart: (fen: string) => invoke<Snapshot>("game_study_start", { fen }),
   legalMoves: (from: number) => invoke<number[]>("legal_moves", { from }),
   playerMove: (from: number, to: number) => invoke<Snapshot>("player_move", { from, to }),
   aiMove: () => invoke<Snapshot>("ai_move"),
